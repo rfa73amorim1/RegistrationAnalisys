@@ -27,7 +27,7 @@ public sealed class CertidoesMockSource : ICertidoesSource
         {
             '1' => "certidoes-ok.json",
             '2' => "certidoes-ok.json",
-            '3' => "certidoes-pendente.json",
+            '3' => "certidoes-positiva.json",
             _ => "certidoes-ok.json"
         };
     }

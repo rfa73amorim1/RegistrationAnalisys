@@ -1,0 +1,175 @@
+{
+  "info": {
+    "_postman_id": "6f8bc4fe-c53a-4b8c-a970-8f2eff4f4b1a",
+    "name": "RegistrationAnalisys - MVP",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Colecao de testes do MVP de qualificacao de CNPJ com fontes mockadas."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://localhost:7202"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Aprovado (final 1)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/qualificacoes?includeExplanation=true",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "qualificacoes"
+          ],
+          "query": [
+            {
+              "key": "includeExplanation",
+              "value": "true"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cnpj\": \"12.345.678/0001-91\"\n}"
+        },
+        "description": "Cenario de teste simulado: CNPJ terminando em 1 retorna APROVADO."
+      },
+      "response": []
+    },
+    {
+      "name": "02 - Aprovado com ressalvas (final 2)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/qualificacoes?includeExplanation=true",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "qualificacoes"
+          ],
+          "query": [
+            {
+              "key": "includeExplanation",
+              "value": "true"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cnpj\": \"12.345.678/0001-92\"\n}"
+        },
+        "description": "Cenario de teste simulado: CNPJ terminando em 2 retorna APROVADO_COM_RESSALVAS."
+      },
+      "response": []
+    },
+    {
+      "name": "03 - Reprovado (final 3)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/qualificacoes?includeExplanation=true",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "qualificacoes"
+          ],
+          "query": [
+            {
+              "key": "includeExplanation",
+              "value": "true"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cnpj\": \"12.345.678/0001-93\"\n}"
+        },
+        "description": "Cenario de teste simulado: CNPJ terminando em 3 retorna REPROVADO por CND positiva (com restricao)."
+      },
+      "response": []
+    },
+    {
+      "name": "04 - CNPJ invalido (400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/qualificacoes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "qualificacoes"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cnpj\": \"123\"\n}"
+        },
+        "description": "Validacao de entrada: deve retornar 400 para CNPJ invalido."
+      },
+      "response": []
+    },
+    {
+      "name": "05 - Sem explicacao do agente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/qualificacoes?includeExplanation=false",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "qualificacoes"
+          ],
+          "query": [
+            {
+              "key": "includeExplanation",
+              "value": "false"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cnpj\": \"12.345.678/0001-92\"\n}"
+        },
+        "description": "Teste opcional para validar o campo explicacaoAgente nulo."
+      },
+      "response": []
+    }
+  ]
+}

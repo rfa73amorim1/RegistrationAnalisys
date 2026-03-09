@@ -1,8 +1,9 @@
 using RegistrationAnalisys.Domain.Enums;
+using RegistrationAnalisys.Domain.Models;
 
 namespace RegistrationAnalisys.Domain.Interfaces;
 
 public interface IExplicadorQualificacao
 {
-    string GerarExplicacao(DecisaoFinal decisaoFinal, decimal scoreFinanceiro, IReadOnlyCollection<string> evidencias, IReadOnlyCollection<string> pendencias);
+    ExplicacaoQualificacao GerarExplicacao(DecisaoFinal decisaoFinal, decimal scoreFinanceiro, IReadOnlyCollection<string> evidencias, IReadOnlyCollection<string> pendencias);
 }

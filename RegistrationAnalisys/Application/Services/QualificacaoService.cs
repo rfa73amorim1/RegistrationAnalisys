@@ -32,17 +32,26 @@ public sealed class QualificacaoService : IQualificacaoService
         var evidencias = MontarEvidencias(consolidado);
         var pendencias = MontarPendencias(consolidado.Certidoes);
         var decisaoFinal = CalcularDecisao(consolidado.Serasa.Score, pendencias.Any(), evidencias);
+        var explicacao = includeExplanation
+            ? _explicador.GerarExplicacao(decisaoFinal, consolidado.Serasa.Score, evidencias, pendencias)
+            : null;
 
         return new QualificacaoResponse
         {
             Cnpj = cnpj,
             DecisaoFinal = decisaoFinal.ToString(),
             ScoreFinanceiro = consolidado.Serasa.Score,
+            ResultadoCnds = MontarResultadoCnds(consolidado.Certidoes),
             Evidencias = evidencias,
             Pendencias = pendencias,
-            ExplicacaoAgente = includeExplanation
-                ? _explicador.GerarExplicacao(decisaoFinal, consolidado.Serasa.Score, evidencias, pendencias)
-                : null
+            ExplicacaoAgente = explicacao is null
+                ? null
+                : new ExplicacaoAgenteDto
+                {
+                    Resumo = explicacao.Resumo,
+                    Fundamentos = explicacao.Fundamentos,
+                    Recomendacoes = explicacao.Recomendacoes
+                }
         };
     }
 
@@ -50,16 +59,16 @@ public sealed class QualificacaoService : IQualificacaoService
     {
         if (possuiPendenciasCertidoes)
         {
-            evidencias.Add("Existe certidao em status PENDENTE ou IRREGULAR.");
+            evidencias.Add("Existe CND em status POSITIVA (com restricao).");
             return DecisaoFinal.REPROVADO;
         }
 
-        if (score >= 8.0m)
+        if (score >= 800m)
         {
             return DecisaoFinal.APROVADO;
         }
 
-        if (score >= 6.0m)
+        if (score >= 600m)
         {
             return DecisaoFinal.APROVADO_COM_RESSALVAS;
         }
@@ -71,7 +80,7 @@ public sealed class QualificacaoService : IQualificacaoService
     {
         return new List<string>
         {
-            $"Score Serasa: {consolidado.Serasa.Score:0.0} (faixa {consolidado.Serasa.Faixa}).",
+            $"Score Serasa: {consolidado.Serasa.Score:0} (faixa {consolidado.Serasa.Faixa}).",
             $"Endividamento informado: {consolidado.Serasa.Endividamento:0.##}%.",
             $"Quantidade de atrasos: {consolidado.Serasa.Atrasos}."
         };
@@ -81,9 +90,22 @@ public sealed class QualificacaoService : IQualificacaoService
     {
         return certidoes
             .ToPairs()
-            .Where(item => item.Value.Equals("PENDENTE", StringComparison.OrdinalIgnoreCase)
-                || item.Value.Equals("IRREGULAR", StringComparison.OrdinalIgnoreCase))
-            .Select(item => $"Certidao {item.Key} em status {item.Value}.")
+            .Where(item => item.Value.Equals("POSITIVA", StringComparison.OrdinalIgnoreCase))
+            .Select(item => $"CND {item.Key} em status POSITIVA (com restricao).")
             .ToList();
+    }
+
+    private static Dictionary<string, string> MontarResultadoCnds(CertidoesData certidoes)
+    {
+        return certidoes
+            .ToPairs()
+            .ToDictionary(item => item.Key, item => ClassificarCnd(item.Value));
+    }
+
+    private static string ClassificarCnd(string status)
+    {
+        return status.Equals("NEGATIVA", StringComparison.OrdinalIgnoreCase)
+            ? "NEGATIVA_SEM_RESTRICAO"
+            : "POSITIVA_COM_RESTRICAO";
     }
 }
