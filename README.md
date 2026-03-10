@@ -119,3 +119,47 @@ Content-Type: application/json
 - `NEGATIVA`: sem restricao
 - `POSITIVA`: com restricao
 
+## Explicacao com Azure OpenAI (opcional)
+
+O projeto ja esta preparado para gerar `explicacaoAgente` com Azure OpenAI.
+
+Se faltar configuracao, ele volta para o template local automaticamente (fallback), sem quebrar a API.
+
+### Passo a passo rapido (facil)
+
+Rode os comandos abaixo, um por vez, na raiz do repositorio:
+
+```bash
+dotnet user-secrets init --project RegistrationAnalisys/RegistrationAnalisys.csproj
+dotnet user-secrets set "AzureOpenAI:Enabled" "true" --project RegistrationAnalisys/RegistrationAnalisys.csproj
+dotnet user-secrets set "AzureOpenAI:Endpoint" "https://SEU-ENDPOINT.openai.azure.com/" --project RegistrationAnalisys/RegistrationAnalisys.csproj
+dotnet user-secrets set "AzureOpenAI:ApiKey" "SUA_KEY_TEMPORARIA" --project RegistrationAnalisys/RegistrationAnalisys.csproj
+dotnet user-secrets set "AzureOpenAI:DeploymentName" "gpt-4o-mini" --project RegistrationAnalisys/RegistrationAnalisys.csproj
+```
+
+Confira se salvou:
+
+```bash
+dotnet user-secrets list --project RegistrationAnalisys/RegistrationAnalisys.csproj
+```
+
+Agora rode a API:
+
+```bash
+dotnet run --project RegistrationAnalisys/RegistrationAnalisys.csproj
+```
+
+Teste no Postman:
+
+- `POST https://localhost:7202/qualificacoes?includeExplanation=true`
+
+Se tudo estiver correto, a explicacao vem do Azure OpenAI.
+Se nao estiver, a API responde com o template local (fallback).
+
+## Onboarding do time
+
+Para configurar segredos com seguranca em novas maquinas:
+
+- Guia completo: `docs/setup-secrets.md`
+- Exemplo de variaveis: `.env.example`
+

@@ -6,7 +6,12 @@ namespace RegistrationAnalisys.Infrastructure.Services;
 
 public sealed class ExplicadorQualificacaoTemplate : IExplicadorQualificacao
 {
-    public ExplicacaoQualificacao GerarExplicacao(DecisaoFinal decisaoFinal, decimal scoreFinanceiro, IReadOnlyCollection<string> evidencias, IReadOnlyCollection<string> pendencias)
+    public Task<ExplicacaoQualificacao> GerarExplicacaoAsync(
+        DecisaoFinal decisaoFinal,
+        decimal scoreFinanceiro,
+        IReadOnlyCollection<string> evidencias,
+        IReadOnlyCollection<string> pendencias,
+        CancellationToken cancellationToken = default)
     {
         var seed = BuildSeed(decisaoFinal, scoreFinanceiro, evidencias.Count, pendencias.Count);
         var resumo = EscolherFraseAbertura(decisaoFinal, scoreFinanceiro, seed);
@@ -26,12 +31,14 @@ public sealed class ExplicadorQualificacaoTemplate : IExplicadorQualificacao
 
         frases.Add("A avaliacao considera apenas os dados tecnicos retornados pelas fontes mockadas.");
 
-        return new ExplicacaoQualificacao
+        var result = new ExplicacaoQualificacao
         {
             Resumo = resumo,
             Fundamentos = fundamentos,
             Recomendacoes = recomendacoes
         };
+
+        return Task.FromResult(result);
     }
 
     private static List<string> MontarFundamentos(DecisaoFinal decisaoFinal, decimal scoreFinanceiro, IReadOnlyCollection<string> evidencias, IReadOnlyCollection<string> pendencias)

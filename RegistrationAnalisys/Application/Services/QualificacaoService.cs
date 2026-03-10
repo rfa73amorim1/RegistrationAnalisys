@@ -33,7 +33,7 @@ public sealed class QualificacaoService : IQualificacaoService
         var pendencias = MontarPendencias(consolidado.Certidoes);
         var decisaoFinal = CalcularDecisao(consolidado.Serasa.Score, pendencias.Any(), evidencias);
         var explicacao = includeExplanation
-            ? _explicador.GerarExplicacao(decisaoFinal, consolidado.Serasa.Score, evidencias, pendencias)
+            ? await _explicador.GerarExplicacaoAsync(decisaoFinal, consolidado.Serasa.Score, evidencias, pendencias, cancellationToken)
             : null;
 
         return new QualificacaoResponse

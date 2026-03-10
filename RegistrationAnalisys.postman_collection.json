@@ -41,8 +41,27 @@
           "mode": "raw",
           "raw": "{\n  \"cnpj\": \"12.345.678/0001-91\"\n}"
         },
-        "description": "Cenario de teste simulado: CNPJ terminando em 1 retorna APROVADO."
+        "description": "Cenario de teste simulado: CNPJ terminando em 1 retorna APROVADO com score >= 800 e CNDs negativas."
       },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('Decisao APROVADO', function () { pm.expect(body.decisaoFinal).to.eql('APROVADO'); });",
+              "pm.test('Explicacao estruturada presente', function () {",
+              "  pm.expect(body.explicacaoAgente).to.be.an('object');",
+              "  pm.expect(body.explicacaoAgente).to.have.property('resumo');",
+              "  pm.expect(body.explicacaoAgente).to.have.property('fundamentos');",
+              "  pm.expect(body.explicacaoAgente).to.have.property('recomendacoes');",
+              "});"
+            ]
+          }
+        }
+      ],
       "response": []
     },
     {
@@ -74,8 +93,25 @@
           "mode": "raw",
           "raw": "{\n  \"cnpj\": \"12.345.678/0001-92\"\n}"
         },
-        "description": "Cenario de teste simulado: CNPJ terminando em 2 retorna APROVADO_COM_RESSALVAS."
+        "description": "Cenario de teste simulado: CNPJ terminando em 2 retorna APROVADO_COM_RESSALVAS (score entre 600 e 799)."
       },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('Decisao APROVADO_COM_RESSALVAS', function () { pm.expect(body.decisaoFinal).to.eql('APROVADO_COM_RESSALVAS'); });",
+              "pm.test('Recomendacoes presentes', function () {",
+              "  pm.expect(body.explicacaoAgente).to.be.an('object');",
+              "  pm.expect(body.explicacaoAgente.recomendacoes).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ],
       "response": []
     },
     {
@@ -109,6 +145,20 @@
         },
         "description": "Cenario de teste simulado: CNPJ terminando em 3 retorna REPROVADO por CND positiva (com restricao)."
       },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('Decisao REPROVADO', function () { pm.expect(body.decisaoFinal).to.eql('REPROVADO'); });",
+              "pm.test('Possui ao menos uma pendencia', function () { pm.expect(body.pendencias.length).to.be.above(0); });"
+            ]
+          }
+        }
+      ],
       "response": []
     },
     {
@@ -136,6 +186,17 @@
         },
         "description": "Validacao de entrada: deve retornar 400 para CNPJ invalido."
       },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', function () { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ],
       "response": []
     },
     {
@@ -167,8 +228,21 @@
           "mode": "raw",
           "raw": "{\n  \"cnpj\": \"12.345.678/0001-92\"\n}"
         },
-        "description": "Teste opcional para validar o campo explicacaoAgente nulo."
+        "description": "Teste opcional para validar o campo explicacaoAgente nulo quando includeExplanation=false."
       },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('Explicacao nula', function () { pm.expect(body.explicacaoAgente).to.eql(null); });"
+            ]
+          }
+        }
+      ],
       "response": []
     }
   ]
