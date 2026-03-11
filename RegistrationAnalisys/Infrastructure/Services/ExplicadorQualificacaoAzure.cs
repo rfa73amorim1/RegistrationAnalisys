@@ -59,7 +59,7 @@ public sealed class ExplicadorQualificacaoAzure : IExplicadorQualificacao
                     new
                     {
                         role = "system",
-                        content = "Voce gera explicacoes de credito em portugues do Brasil. Responda exclusivamente em JSON valido com as chaves: resumo, fundamentos (array), recomendacoes (array). Nao invente fatos fora das evidencias e pendencias recebidas."
+                        content = "Voce gera recomendacoes comerciais de credito B2B em portugues do Brasil. O foco e orientar o time de vendas sobre aprovar, aprovar com ressalvas ou reprovar a prazo. Nao oriente o consultado a melhorar score. Responda exclusivamente em JSON valido com as chaves: resumo, fundamentos (array), recomendacoes (array). Nao invente fatos fora das evidencias e pendencias recebidas."
                     },
                     new
                     {

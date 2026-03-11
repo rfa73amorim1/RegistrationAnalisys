@@ -18,10 +18,10 @@ public sealed class QualificacaoService : IQualificacaoService
         _explicador = explicador;
     }
 
-    public async Task<QualificacaoResponse> QualificarAsync(string cnpj, bool includeExplanation = true, CancellationToken cancellationToken = default)
+    public async Task<QualificacaoResponse> QualificarAsync(QualificacaoRequest request, CancellationToken cancellationToken = default)
     {
-        var serasa = await _serasaSource.ConsultarAsync(cnpj, cancellationToken);
-        var certidoes = await _certidoesSource.ConsultarAsync(cnpj, cancellationToken);
+        var serasa = await _serasaSource.ConsultarAsync(request.Cnpj, cancellationToken);
+        var certidoes = await _certidoesSource.ConsultarAsync(request.Cnpj, cancellationToken);
 
         var consolidado = new ConsolidadoData
         {
@@ -29,46 +29,40 @@ public sealed class QualificacaoService : IQualificacaoService
             Certidoes = certidoes
         };
 
-        var evidencias = MontarEvidencias(consolidado);
+        var politica = ObterPolitica(request.PoliticaId);
+        var evidencias = MontarEvidencias(consolidado, request, politica);
         var pendencias = MontarPendencias(consolidado.Certidoes);
-        var decisaoFinal = CalcularDecisao(consolidado.Serasa.Score, pendencias.Any(), evidencias);
-        var explicacao = includeExplanation
-            ? await _explicador.GerarExplicacaoAsync(decisaoFinal, consolidado.Serasa.Score, evidencias, pendencias, cancellationToken)
-            : null;
+        var decisaoFinal = CalcularDecisao(consolidado.Serasa.Score, pendencias.Any(), request, politica);
+        var explicacao = await _explicador.GerarExplicacaoAsync(decisaoFinal, consolidado.Serasa.Score, evidencias, pendencias, cancellationToken);
+        var acaoComercial = MontarAcaoComercial(decisaoFinal, request, politica);
+        var motivosPrincipais = MontarMotivosPrincipais(consolidado.Serasa, pendencias, request);
 
         return new QualificacaoResponse
         {
-            Cnpj = cnpj,
-            DecisaoFinal = decisaoFinal.ToString(),
-            ScoreFinanceiro = consolidado.Serasa.Score,
-            ResultadoCnds = MontarResultadoCnds(consolidado.Certidoes),
-            Evidencias = evidencias,
-            Pendencias = pendencias,
-            ExplicacaoAgente = explicacao is null
-                ? null
-                : new ExplicacaoAgenteDto
-                {
-                    Resumo = explicacao.Resumo,
-                    Fundamentos = explicacao.Fundamentos,
-                    Recomendacoes = explicacao.Recomendacoes
-                }
+            RecomendacaoAgente = MontarRecomendacaoAgente(explicacao.Resumo, acaoComercial, decisaoFinal),
+            AcaoComercial = acaoComercial,
+            MotivosPrincipais = motivosPrincipais
         };
     }
 
-    private static DecisaoFinal CalcularDecisao(decimal score, bool possuiPendenciasCertidoes, List<string> evidencias)
+    private static DecisaoFinal CalcularDecisao(decimal score, bool possuiPendenciasCertidoes, QualificacaoRequest request, PoliticaNegocio politica)
     {
-        if (possuiPendenciasCertidoes)
+        if (possuiPendenciasCertidoes && politica.BloqueiaComRestricaoAtiva)
         {
-            evidencias.Add("Existe CND em status POSITIVA (com restricao).");
             return DecisaoFinal.REPROVADO;
         }
 
-        if (score >= 800m)
+        if (!request.ClienteNovo && (request.DiasAtrasoInterno90d ?? 0) > politica.MaxDiasAtrasoInterno)
+        {
+            return DecisaoFinal.REPROVADO;
+        }
+
+        if (score >= politica.ScoreMinAprovar)
         {
             return DecisaoFinal.APROVADO;
         }
 
-        if (score >= 600m)
+        if (score >= politica.ScoreMinRessalva)
         {
             return DecisaoFinal.APROVADO_COM_RESSALVAS;
         }
@@ -76,14 +70,116 @@ public sealed class QualificacaoService : IQualificacaoService
         return DecisaoFinal.REPROVADO;
     }
 
-    private static List<string> MontarEvidencias(ConsolidadoData consolidado)
+    private static List<string> MontarEvidencias(ConsolidadoData consolidado, QualificacaoRequest request, PoliticaNegocio politica)
     {
         return new List<string>
         {
             $"Score Serasa: {consolidado.Serasa.Score:0} (faixa {consolidado.Serasa.Faixa}).",
             $"Endividamento informado: {consolidado.Serasa.Endividamento:0.##}%.",
-            $"Quantidade de atrasos: {consolidado.Serasa.Atrasos}."
+            $"Quantidade de atrasos: {consolidado.Serasa.Atrasos}.",
+            $"Valor do pedido: {request.ValorPedido:0.##}.",
+            $"Prazo desejado: {request.PrazoDesejadoDias} dias.",
+            $"Politica aplicada: {politica.Id}."
         };
+    }
+
+    private static AcaoComercialDto MontarAcaoComercial(DecisaoFinal decisaoFinal, QualificacaoRequest request, PoliticaNegocio politica)
+    {
+        if (decisaoFinal == DecisaoFinal.APROVADO)
+        {
+            return new AcaoComercialDto
+            {
+                Decisao = decisaoFinal.ToString(),
+                LimiteCreditoSugerido = politica.LimiteBase,
+                PrazoMaximoDias = Math.Min(request.PrazoDesejadoDias, politica.PrazoMaximoAprovadoDias),
+                EntradaMinimaPercentual = 0,
+                VendaSomenteAVista = false
+            };
+        }
+
+        if (decisaoFinal == DecisaoFinal.APROVADO_COM_RESSALVAS)
+        {
+            return new AcaoComercialDto
+            {
+                Decisao = decisaoFinal.ToString(),
+                LimiteCreditoSugerido = Math.Min(request.ValorPedido, politica.LimiteBase * 0.5m),
+                PrazoMaximoDias = Math.Min(request.PrazoDesejadoDias, politica.PrazoMaximoRessalvaDias),
+                EntradaMinimaPercentual = politica.EntradaMinimaRessalvaPercentual,
+                VendaSomenteAVista = false
+            };
+        }
+
+        return new AcaoComercialDto
+        {
+            Decisao = decisaoFinal.ToString(),
+            LimiteCreditoSugerido = 0,
+            PrazoMaximoDias = 0,
+            EntradaMinimaPercentual = 100,
+            VendaSomenteAVista = true
+        };
+    }
+
+    private static List<string> MontarMotivosPrincipais(SerasaData serasa, List<string> pendencias, QualificacaoRequest request)
+    {
+        var motivos = new List<string>
+        {
+            $"Score Serasa em faixa {serasa.Faixa} ({serasa.Score:0})."
+        };
+
+        if (!request.ClienteNovo)
+        {
+            motivos.Add($"Atraso interno em 90 dias: {request.DiasAtrasoInterno90d ?? 0} dia(s).");
+        }
+
+        if (pendencias.Count > 0)
+        {
+            motivos.Add(pendencias[0]);
+        }
+
+        return motivos.Take(3).ToList();
+    }
+
+    private static string MontarRecomendacaoAgente(string resumoExplicacao, AcaoComercialDto acaoComercial, DecisaoFinal decisaoFinal)
+    {
+        if (!string.IsNullOrWhiteSpace(resumoExplicacao))
+        {
+            return resumoExplicacao;
+        }
+
+        return decisaoFinal switch
+        {
+            DecisaoFinal.APROVADO => "Recomendo seguir com a venda nas condicoes padrao, mantendo monitoramento da carteira.",
+            DecisaoFinal.APROVADO_COM_RESSALVAS => $"Recomendo vender com cautela: limite sugerido de {acaoComercial.LimiteCreditoSugerido:0.##}, prazo de ate {acaoComercial.PrazoMaximoDias} dias e entrada minima de {acaoComercial.EntradaMinimaPercentual}%.",
+            _ => "Recomendo nao liberar credito a prazo neste momento e ofertar apenas venda a vista ou antecipada."
+        };
+    }
+
+    private static PoliticaNegocio ObterPolitica(string politicaId)
+    {
+        if (string.Equals(politicaId, "B2B_ALIMENTOS_CONSERVADORA_V1", StringComparison.OrdinalIgnoreCase))
+        {
+            return new PoliticaNegocio(
+                "B2B_ALIMENTOS_CONSERVADORA_V1",
+                ScoreMinAprovar: 780m,
+                ScoreMinRessalva: 620m,
+                MaxDiasAtrasoInterno: 5,
+                LimiteBase: 20000m,
+                PrazoMaximoAprovadoDias: 21,
+                PrazoMaximoRessalvaDias: 14,
+                EntradaMinimaRessalvaPercentual: 25,
+                BloqueiaComRestricaoAtiva: true);
+        }
+
+        return new PoliticaNegocio(
+            "B2B_BENS_CONSUMO_PADRAO_V1",
+            ScoreMinAprovar: 740m,
+            ScoreMinRessalva: 580m,
+            MaxDiasAtrasoInterno: 10,
+            LimiteBase: 30000m,
+            PrazoMaximoAprovadoDias: 28,
+            PrazoMaximoRessalvaDias: 21,
+            EntradaMinimaRessalvaPercentual: 20,
+            BloqueiaComRestricaoAtiva: true);
     }
 
     private static List<string> MontarPendencias(CertidoesData certidoes)
@@ -95,17 +191,14 @@ public sealed class QualificacaoService : IQualificacaoService
             .ToList();
     }
 
-    private static Dictionary<string, string> MontarResultadoCnds(CertidoesData certidoes)
-    {
-        return certidoes
-            .ToPairs()
-            .ToDictionary(item => item.Key, item => ClassificarCnd(item.Value));
-    }
-
-    private static string ClassificarCnd(string status)
-    {
-        return status.Equals("NEGATIVA", StringComparison.OrdinalIgnoreCase)
-            ? "NEGATIVA_SEM_RESTRICAO"
-            : "POSITIVA_COM_RESTRICAO";
-    }
+    private sealed record PoliticaNegocio(
+        string Id,
+        decimal ScoreMinAprovar,
+        decimal ScoreMinRessalva,
+        int MaxDiasAtrasoInterno,
+        decimal LimiteBase,
+        int PrazoMaximoAprovadoDias,
+        int PrazoMaximoRessalvaDias,
+        int EntradaMinimaRessalvaPercentual,
+        bool BloqueiaComRestricaoAtiva);
 }

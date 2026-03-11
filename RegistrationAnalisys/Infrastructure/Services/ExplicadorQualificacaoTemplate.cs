@@ -93,18 +93,18 @@ public sealed class ExplicadorQualificacaoTemplate : IExplicadorQualificacao
         {
             DecisaoFinal.APROVADO => new[]
             {
-                $"A decisao final foi APROVADO com score financeiro {scoreFinanceiro:0}.",
-                $"Com score financeiro {scoreFinanceiro:0}, o resultado da analise e APROVADO."
+                $"Recomenda-se aprovar a operacao nas condicoes padrao, com score financeiro {scoreFinanceiro:0}.",
+                $"A analise comercial indica APROVADO para a venda com score financeiro {scoreFinanceiro:0}."
             },
             DecisaoFinal.APROVADO_COM_RESSALVAS => new[]
             {
-                $"A empresa foi classificada como APROVADO_COM_RESSALVAS com score financeiro {scoreFinanceiro:0}.",
-                $"O score financeiro {scoreFinanceiro:0} sustenta APROVADO_COM_RESSALVAS, com necessidade de monitoramento."
+                $"Recomenda-se aprovar com ressalvas, adotando limite e prazo mais conservadores para esta venda.",
+                $"A analise comercial sustenta APROVADO_COM_RESSALVAS com score financeiro {scoreFinanceiro:0}."
             },
             _ => new[]
             {
-                $"A decisao final foi REPROVADO com score financeiro {scoreFinanceiro:0}.",
-                $"Com score financeiro {scoreFinanceiro:0}, o enquadramento final ficou em REPROVADO."
+                $"Recomenda-se nao aprovar credito a prazo nesta operacao com score financeiro {scoreFinanceiro:0}.",
+                $"A analise comercial indica REPROVADO para venda a prazo no cenario atual."
             }
         };
 
@@ -117,9 +117,9 @@ public sealed class ExplicadorQualificacaoTemplate : IExplicadorQualificacao
         {
             var opcoes = new[]
             {
-                "Como mitigacao, considere reduzir o prazo medio de recebimento e priorizar operacoes com adiantamento a vista.",
-                "Recomenda-se ajustar a politica comercial para encurtar prazos de recebimento e ampliar incentivos para pagamento a vista.",
-                "Para reduzir risco, vale reforcar garantias e concentrar vendas em condicoes com menor prazo financeiro."
+                "Aplicar entrada minima e reduzir prazo para mitigar risco nesta venda.",
+                "Liberar credito com limite reduzido e acompanhamento da carteira apos a venda.",
+                "Condicionar a aprovacao a condicoes comerciais mais conservadoras."
             };
 
             return new List<string> { opcoes[Math.Abs(seed) % opcoes.Length] };
@@ -129,7 +129,7 @@ public sealed class ExplicadorQualificacaoTemplate : IExplicadorQualificacao
         {
             return new List<string>
             {
-                "E aconselhavel regularizar as pendencias apontadas antes de submeter uma nova analise."
+                "Para esta operacao, priorizar venda a vista ou pagamento antecipado."
             };
         }
 

@@ -22,7 +22,6 @@ public sealed class QualificacoesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<QualificacaoResponse>> Post(
         [FromBody] QualificacaoRequest? request,
-        [FromQuery] bool includeExplanation = true,
         CancellationToken cancellationToken = default)
     {
         if (request is null || string.IsNullOrWhiteSpace(request.Cnpj))
@@ -37,7 +36,39 @@ public sealed class QualificacoesController : ControllerBase
             return BadRequest(new { message = "CNPJ invalido. Informe 14 digitos." });
         }
 
-        var result = await _qualificacaoService.QualificarAsync(cnpjNormalizado, includeExplanation, cancellationToken);
+        if (request.ValorPedido <= 0)
+        {
+            return BadRequest(new { message = "valorPedido deve ser maior que zero." });
+        }
+
+        if (request.PrazoDesejadoDias <= 0)
+        {
+            return BadRequest(new { message = "prazoDesejadoDias deve ser maior que zero." });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.PoliticaId))
+        {
+            return BadRequest(new { message = "politicaId e obrigatorio." });
+        }
+
+        if (request.ClienteNovo && request.DiasAtrasoInterno90d.HasValue)
+        {
+            return BadRequest(new { message = "diasAtrasoInterno90d nao deve ser enviado para cliente novo." });
+        }
+
+        if (!request.ClienteNovo && !request.DiasAtrasoInterno90d.HasValue)
+        {
+            return BadRequest(new { message = "diasAtrasoInterno90d e obrigatorio para cliente existente." });
+        }
+
+        if (request.DiasAtrasoInterno90d is < 0)
+        {
+            return BadRequest(new { message = "diasAtrasoInterno90d nao pode ser negativo." });
+        }
+
+        request.Cnpj = cnpjNormalizado;
+
+        var result = await _qualificacaoService.QualificarAsync(request, cancellationToken);
         return Ok(result);
     }
 }
