@@ -1,0 +1,249 @@
+{
+  "info": {
+    "_postman_id": "6f8bc4fe-c53a-4b8c-a970-8f2eff4f4b1a",
+    "name": "RegistrationAnalysis - MVP",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Colecao de testes do MVP de qualificacao de CNPJ com fontes mockadas."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://localhost:7202"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Aprovado (final 1)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/qualificacoes?includeExplanation=true",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "qualificacoes"
+          ],
+          "query": [
+            {
+              "key": "includeExplanation",
+              "value": "true"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cnpj\": \"12.345.678/0001-91\"\n}"
+        },
+        "description": "Cenario de teste simulado: CNPJ terminando em 1 retorna APROVADO com score >= 800 e CNDs negativas."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('Decisao APROVADO', function () { pm.expect(body.decisaoFinal).to.eql('APROVADO'); });",
+              "pm.test('Explicacao estruturada presente', function () {",
+              "  pm.expect(body.explicacaoAgente).to.be.an('object');",
+              "  pm.expect(body.explicacaoAgente).to.have.property('resumo');",
+              "  pm.expect(body.explicacaoAgente).to.have.property('fundamentos');",
+              "  pm.expect(body.explicacaoAgente).to.have.property('recomendacoes');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "02 - Aprovado com ressalvas (final 2)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/qualificacoes?includeExplanation=true",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "qualificacoes"
+          ],
+          "query": [
+            {
+              "key": "includeExplanation",
+              "value": "true"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cnpj\": \"12.345.678/0001-92\"\n}"
+        },
+        "description": "Cenario de teste simulado: CNPJ terminando em 2 retorna APROVADO_COM_RESSALVAS (score entre 600 e 799)."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('Decisao APROVADO_COM_RESSALVAS', function () { pm.expect(body.decisaoFinal).to.eql('APROVADO_COM_RESSALVAS'); });",
+              "pm.test('Recomendacoes presentes', function () {",
+              "  pm.expect(body.explicacaoAgente).to.be.an('object');",
+              "  pm.expect(body.explicacaoAgente.recomendacoes).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "03 - Reprovado (final 3)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/qualificacoes?includeExplanation=true",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "qualificacoes"
+          ],
+          "query": [
+            {
+              "key": "includeExplanation",
+              "value": "true"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cnpj\": \"12.345.678/0001-93\"\n}"
+        },
+        "description": "Cenario de teste simulado: CNPJ terminando em 3 retorna REPROVADO por CND positiva (com restricao)."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('Decisao REPROVADO', function () { pm.expect(body.decisaoFinal).to.eql('REPROVADO'); });",
+              "pm.test('Possui ao menos uma pendencia', function () { pm.expect(body.pendencias.length).to.be.above(0); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "04 - CNPJ invalido (400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/qualificacoes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "qualificacoes"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cnpj\": \"123\"\n}"
+        },
+        "description": "Validacao de entrada: deve retornar 400 para CNPJ invalido."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', function () { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    },
+    {
+      "name": "05 - Sem explicacao do agente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/qualificacoes?includeExplanation=false",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "qualificacoes"
+          ],
+          "query": [
+            {
+              "key": "includeExplanation",
+              "value": "false"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cnpj\": \"12.345.678/0001-92\"\n}"
+        },
+        "description": "Teste opcional para validar o campo explicacaoAgente nulo quando includeExplanation=false."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "pm.test('Explicacao nula', function () { pm.expect(body.explicacaoAgente).to.eql(null); });"
+            ]
+          }
+        }
+      ],
+      "response": []
+    }
+  ]
+}

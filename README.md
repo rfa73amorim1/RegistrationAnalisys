@@ -1,4 +1,4 @@
-# RegistrationAnalisys MVP
+# RegistrationAnalysis MVP
 
 API Web em .NET 6 para qualificacao de CNPJ com foco em decisao comercial B2B.
 
@@ -20,7 +20,7 @@ Importante: este projeto usa dados simulados (mocks) para PoC. Nao ha consulta r
 
 ```bash
 dotnet restore
-dotnet run --project RegistrationAnalisys/RegistrationAnalisys.csproj --urls http://localhost:5099
+dotnet run --project RegistrationAnalysis/RegistrationAnalysis.csproj --urls http://localhost:5099
 ```
 
 Base URL sugerida para Postman:
@@ -211,11 +211,11 @@ Para facilitar testes, o ultimo digito do CNPJ define os dados mockados:
 
 Para testes de fluxo antigo (sem papel), use:
 
-- `RegistrationAnalisys.postman_collection.v2.json`
+- `RegistrationAnalysis.postman_collection.v2.json`
 
 Para testes da Opcao B (CLIENTE/FORNECEDOR), use:
 
-- `RegistrationAnalisys.postman_collection.v3.opcaoB.json`
+- `RegistrationAnalysis.postman_collection.v3.json`
 
 A v3 inclui cenarios:
 
@@ -247,11 +247,11 @@ Se faltar configuracao, usa fallback local automaticamente (sem quebrar API).
 Passo a passo rapido:
 
 ```bash
-dotnet user-secrets init --project RegistrationAnalisys/RegistrationAnalisys.csproj
-dotnet user-secrets set "AzureOpenAI:Enabled" "true" --project RegistrationAnalisys/RegistrationAnalisys.csproj
-dotnet user-secrets set "AzureOpenAI:Endpoint" "https://SEU-ENDPOINT.openai.azure.com/" --project RegistrationAnalisys/RegistrationAnalisys.csproj
-dotnet user-secrets set "AzureOpenAI:ApiKey" "SUA_KEY_TEMPORARIA" --project RegistrationAnalisys/RegistrationAnalisys.csproj
-dotnet user-secrets set "AzureOpenAI:DeploymentName" "gpt-4o-mini" --project RegistrationAnalisys/RegistrationAnalisys.csproj
+dotnet user-secrets init --project RegistrationAnalysis/RegistrationAnalysis.csproj
+dotnet user-secrets set "AzureOpenAI:Enabled" "true" --project RegistrationAnalysis/RegistrationAnalysis.csproj
+dotnet user-secrets set "AzureOpenAI:Endpoint" "https://SEU-ENDPOINT.openai.azure.com/" --project RegistrationAnalysis/RegistrationAnalysis.csproj
+dotnet user-secrets set "AzureOpenAI:ApiKey" "SUA_KEY_TEMPORARIA" --project RegistrationAnalysis/RegistrationAnalysis.csproj
+dotnet user-secrets set "AzureOpenAI:DeploymentName" "gpt-4o-mini" --project RegistrationAnalysis/RegistrationAnalysis.csproj
 ```
 
 ## Onboarding do time

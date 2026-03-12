@@ -1,4 +1,4 @@
-# RegistrationAnalisys - One Pager de Pitch
+# RegistrationAnalysis - One Pager de Pitch
 
 ## Problema
 
@@ -6,7 +6,7 @@ Times comerciais B2B precisam decidir rapido se podem vender a prazo para um CNP
 
 ## Solucao
 
-RegistrationAnalisys transforma dados de risco em decisao comercial objetiva para operacao B2B:
+RegistrationAnalysis transforma dados de risco em decisao comercial objetiva para operacao B2B:
 
 1. Recebe CNPJ + dados da operacao + contexto do relacionamento.
 2. Aplica politica de negocio compativel com o papel (por `politicaId`).
