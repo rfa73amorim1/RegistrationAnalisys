@@ -1,133 +1,140 @@
 # RegistrationAnalisys MVP
 
-API Web em .NET 6 para qualificar CNPJ com base em fontes mockadas (Serasa e Certidoes).
+API Web em .NET 6 para qualificacao de CNPJ com foco em decisao comercial B2B.
 
-Importante: este projeto usa dados simulados para testes de hackathon. Nao ha consulta real a bureaus externos neste MVP.
+Importante: este projeto usa dados simulados (mocks) para PoC. Nao ha consulta real a bureaus externos neste MVP.
+
+## Resumo do produto (PoC)
+
+1. Recebe dados do pedido + contexto do cliente.
+2. Aplica uma politica de negocio (segmentada por `politicaId`).
+3. Retorna resposta enxuta para o comercial:
+   - `recomendacaoAgente`
+   - `acaoComercial`
+   - `motivosPrincipais`
 
 ## Como rodar
 
 ```bash
 dotnet restore
-dotnet run --project RegistrationAnalisys/RegistrationAnalisys.csproj
+dotnet run --project RegistrationAnalisys/RegistrationAnalisys.csproj --urls http://localhost:5099
 ```
 
-URLs locais (conforme `launchSettings.json`):
+Base URL sugerida para Postman:
 
-- `https://localhost:7202`
-- `http://localhost:5168`
+- `http://localhost:5099`
 
 Swagger foi desabilitado para uso direto com Postman.
 
 ## Endpoint
 
-- `POST /qualificacoes?includeExplanation=true`
+- `POST /qualificacoes`
 
-Request:
+## Contrato da API
+
+### Request
 
 ```json
 {
-  "cnpj": "12.345.678/0001-91"
+  "cnpj": "12.345.678/0001-91",
+  "valorPedido": 12000.00,
+  "prazoDesejadoDias": 21,
+  "clienteNovo": true,
+  "politicaId": "B2B_BENS_CONSUMO_PADRAO_V1"
 }
 ```
 
-Response (exemplo):
+Campos:
+
+1. `cnpj` (obrigatorio)
+2. `valorPedido` (obrigatorio, > 0)
+3. `prazoDesejadoDias` (obrigatorio, > 0)
+4. `clienteNovo` (obrigatorio)
+5. `diasAtrasoInterno90d` (obrigatorio apenas se `clienteNovo = false`)
+6. `politicaId` (obrigatorio)
+
+### Response
 
 ```json
 {
-  "cnpj": "12345678000191",
-  "decisaoFinal": "APROVADO",
-  "scoreFinanceiro": 870,
-  "resultadoCnds": {
-    "federal": "NEGATIVA_SEM_RESTRICAO",
-    "estadual": "NEGATIVA_SEM_RESTRICAO",
-    "trabalhista": "NEGATIVA_SEM_RESTRICAO",
-    "fgts": "NEGATIVA_SEM_RESTRICAO"
+  "recomendacaoAgente": "Recomenda-se aprovar com ressalvas, adotando limite e prazo mais conservadores para esta venda.",
+  "acaoComercial": {
+    "decisao": "APROVADO_COM_RESSALVAS",
+    "limiteCreditoSugerido": 10000.0,
+    "prazoMaximoDias": 14,
+    "entradaMinimaPercentual": 25,
+    "vendaSomenteAVista": false
   },
-  "evidencias": [
-    "Score Serasa: 870 (faixa A).",
-    "Endividamento informado: 12.4%.",
-    "Quantidade de atrasos: 0."
-  ],
-  "pendencias": [],
-  "explicacaoAgente": {
-    "resumo": "A decisao final foi APROVADO com score financeiro 870.",
-    "fundamentos": [
-      "Evidencias principais: Score Serasa: 870 (faixa A).; Endividamento informado: 12.4%."
-    ],
-    "recomendacoes": []
-  }
+  "motivosPrincipais": [
+    "Score Serasa em faixa B (640)."
+  ]
 }
 ```
 
-## Cenarios de teste (simulados)
+## Politicas de negocio (PoC)
 
-Para facilitar testes no Postman, o ultimo digito do CNPJ define o cenario mockado:
+As politicas agora sao configuradas no `appsettings.json`, sem necessidade de alterar codigo.
 
-- Final `1`: cenario OK
-- Final `2`: cenario APROVADO_COM_RESSALVAS
-- Final `3`: cenario REPROVADO (CND positiva com restricao)
+Secao:
 
-Esses cenarios sao artificiais e servem apenas para validar o fluxo de decisao.
+- `PoliticasNegocio:Itens`
 
-### Requests sugeridos para teste
+Politicas atuais:
 
-1. Aprovado
+1. `B2B_ALIMENTOS_CONSERVADORA_V1`
+2. `B2B_BENS_CONSUMO_PADRAO_V1`
 
-```http
-POST https://localhost:7202/qualificacoes?includeExplanation=true
-Content-Type: application/json
+Cada politica define:
 
-{"cnpj":"12.345.678/0001-91"}
-```
+1. `ScoreMinAprovar`
+2. `ScoreMinRessalva`
+3. `MaxDiasAtrasoInterno`
+4. `LimiteBase`
+5. `PrazoMaximoAprovadoDias`
+6. `PrazoMaximoRessalvaDias`
+7. `EntradaMinimaRessalvaPercentual`
+8. `BloqueiaComRestricaoAtiva`
 
-2. Aprovado com ressalvas
+## Cenarios de mock
 
-```http
-POST https://localhost:7202/qualificacoes?includeExplanation=true
-Content-Type: application/json
+Para facilitar testes, o ultimo digito do CNPJ define os dados mockados:
 
-{"cnpj":"12.345.678/0001-92"}
-```
+1. Final `1`: `serasa-ok` + `certidoes-ok`
+2. Final `2`: `serasa-ressalva` + `certidoes-ok`
+3. Final `3`: `serasa-reprovado` + `certidoes-positiva`
 
-3. Reprovado
+## Collection Postman
 
-```http
-POST https://localhost:7202/qualificacoes?includeExplanation=true
-Content-Type: application/json
+Use a collection nova:
 
-{"cnpj":"12.345.678/0001-93"}
-```
+- `RegistrationAnalisys.postman_collection.v2.json`
 
-4. Validacao de entrada (erro 400)
+Ela ja inclui cenarios:
 
-```http
-POST https://localhost:7202/qualificacoes
-Content-Type: application/json
+1. APROVADO
+2. APROVADO_COM_RESSALVAS
+3. REPROVADO
+4. Erro de validacao (400)
 
-{"cnpj":"123"}
-```
+Variavel da collection:
 
-## Regras de decisao (MVP)
+- `baseUrl = http://localhost:5099`
 
-1. Se qualquer CND estiver `POSITIVA` (com restricao) => `REPROVADO`
-2. Senao, se `score >= 800` => `APROVADO`
-3. Senao, se `score >= 600` => `APROVADO_COM_RESSALVAS`
-4. Senao (`score < 600`) => `REPROVADO`
+## Regras principais de decisao
 
-## Modelo de CND no MVP
-
-- `NEGATIVA`: sem restricao
-- `POSITIVA`: com restricao
+1. Se existir CND `POSITIVA` e a politica bloquear restricao ativa => `REPROVADO`
+2. Se cliente existente tiver atraso interno acima do limite da politica => `REPROVADO`
+3. Se `score >= ScoreMinAprovar` => `APROVADO`
+4. Se `score >= ScoreMinRessalva` => `APROVADO_COM_RESSALVAS`
+5. Caso contrario => `REPROVADO`
 
 ## Explicacao com Azure OpenAI (opcional)
 
-O projeto ja esta preparado para gerar `explicacaoAgente` com Azure OpenAI.
+O projeto pode gerar `recomendacaoAgente` usando Azure OpenAI.
 
-Se faltar configuracao, ele volta para o template local automaticamente (fallback), sem quebrar a API.
+Se faltar configuracao, usa fallback local automaticamente (sem quebrar API).
 
-### Passo a passo rapido (facil)
-
-Rode os comandos abaixo, um por vez, na raiz do repositorio:
+Passo a passo rapido:
 
 ```bash
 dotnet user-secrets init --project RegistrationAnalisys/RegistrationAnalisys.csproj
@@ -137,29 +144,10 @@ dotnet user-secrets set "AzureOpenAI:ApiKey" "SUA_KEY_TEMPORARIA" --project Regi
 dotnet user-secrets set "AzureOpenAI:DeploymentName" "gpt-4o-mini" --project RegistrationAnalisys/RegistrationAnalisys.csproj
 ```
 
-Confira se salvou:
-
-```bash
-dotnet user-secrets list --project RegistrationAnalisys/RegistrationAnalisys.csproj
-```
-
-Agora rode a API:
-
-```bash
-dotnet run --project RegistrationAnalisys/RegistrationAnalisys.csproj
-```
-
-Teste no Postman:
-
-- `POST https://localhost:7202/qualificacoes?includeExplanation=true`
-
-Se tudo estiver correto, a explicacao vem do Azure OpenAI.
-Se nao estiver, a API responde com o template local (fallback).
-
 ## Onboarding do time
 
 Para configurar segredos com seguranca em novas maquinas:
 
-- Guia completo: `docs/setup-secrets.md`
-- Exemplo de variaveis: `.env.example`
+1. Guia completo: `docs/setup-secrets.md`
+2. Exemplo de variaveis: `.env.example`
 

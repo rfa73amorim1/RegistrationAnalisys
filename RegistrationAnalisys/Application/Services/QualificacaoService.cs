@@ -2,6 +2,8 @@ using RegistrationAnalisys.Application.DTOs;
 using RegistrationAnalisys.Domain.Enums;
 using RegistrationAnalisys.Domain.Interfaces;
 using RegistrationAnalisys.Domain.Models;
+using RegistrationAnalisys.Infrastructure.Options;
+using Microsoft.Extensions.Options;
 
 namespace RegistrationAnalisys.Application.Services;
 
@@ -10,12 +12,18 @@ public sealed class QualificacaoService : IQualificacaoService
     private readonly ISerasaSource _serasaSource;
     private readonly ICertidoesSource _certidoesSource;
     private readonly IExplicadorQualificacao _explicador;
+    private readonly Dictionary<string, PoliticaNegocio> _politicas;
 
-    public QualificacaoService(ISerasaSource serasaSource, ICertidoesSource certidoesSource, IExplicadorQualificacao explicador)
+    public QualificacaoService(
+        ISerasaSource serasaSource,
+        ICertidoesSource certidoesSource,
+        IExplicadorQualificacao explicador,
+        IOptions<PoliticasNegocioOptions> politicasOptions)
     {
         _serasaSource = serasaSource;
         _certidoesSource = certidoesSource;
         _explicador = explicador;
+        _politicas = ConstruirPoliticas(politicasOptions.Value);
     }
 
     public async Task<QualificacaoResponse> QualificarAsync(QualificacaoRequest request, CancellationToken cancellationToken = default)
@@ -154,32 +162,14 @@ public sealed class QualificacaoService : IQualificacaoService
         };
     }
 
-    private static PoliticaNegocio ObterPolitica(string politicaId)
+    private PoliticaNegocio ObterPolitica(string politicaId)
     {
-        if (string.Equals(politicaId, "B2B_ALIMENTOS_CONSERVADORA_V1", StringComparison.OrdinalIgnoreCase))
+        if (_politicas.TryGetValue(politicaId, out var politica))
         {
-            return new PoliticaNegocio(
-                "B2B_ALIMENTOS_CONSERVADORA_V1",
-                ScoreMinAprovar: 780m,
-                ScoreMinRessalva: 620m,
-                MaxDiasAtrasoInterno: 5,
-                LimiteBase: 20000m,
-                PrazoMaximoAprovadoDias: 21,
-                PrazoMaximoRessalvaDias: 14,
-                EntradaMinimaRessalvaPercentual: 25,
-                BloqueiaComRestricaoAtiva: true);
+            return politica;
         }
 
-        return new PoliticaNegocio(
-            "B2B_BENS_CONSUMO_PADRAO_V1",
-            ScoreMinAprovar: 740m,
-            ScoreMinRessalva: 580m,
-            MaxDiasAtrasoInterno: 10,
-            LimiteBase: 30000m,
-            PrazoMaximoAprovadoDias: 28,
-            PrazoMaximoRessalvaDias: 21,
-            EntradaMinimaRessalvaPercentual: 20,
-            BloqueiaComRestricaoAtiva: true);
+        return _politicas["B2B_BENS_CONSUMO_PADRAO_V1"];
     }
 
     private static List<string> MontarPendencias(CertidoesData certidoes)
@@ -201,4 +191,50 @@ public sealed class QualificacaoService : IQualificacaoService
         int PrazoMaximoRessalvaDias,
         int EntradaMinimaRessalvaPercentual,
         bool BloqueiaComRestricaoAtiva);
+
+    private static Dictionary<string, PoliticaNegocio> ConstruirPoliticas(PoliticasNegocioOptions options)
+    {
+        var configuradas = options.Itens
+            .Where(item => !string.IsNullOrWhiteSpace(item.Id))
+            .Select(item => new PoliticaNegocio(
+                item.Id,
+                item.ScoreMinAprovar,
+                item.ScoreMinRessalva,
+                item.MaxDiasAtrasoInterno,
+                item.LimiteBase,
+                item.PrazoMaximoAprovadoDias,
+                item.PrazoMaximoRessalvaDias,
+                item.EntradaMinimaRessalvaPercentual,
+                item.BloqueiaComRestricaoAtiva))
+            .ToDictionary(item => item.Id, StringComparer.OrdinalIgnoreCase);
+
+        if (configuradas.Count > 0)
+        {
+            return configuradas;
+        }
+
+        return new Dictionary<string, PoliticaNegocio>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["B2B_ALIMENTOS_CONSERVADORA_V1"] = new PoliticaNegocio(
+                "B2B_ALIMENTOS_CONSERVADORA_V1",
+                780m,
+                620m,
+                5,
+                20000m,
+                21,
+                14,
+                25,
+                true),
+            ["B2B_BENS_CONSUMO_PADRAO_V1"] = new PoliticaNegocio(
+                "B2B_BENS_CONSUMO_PADRAO_V1",
+                740m,
+                580m,
+                10,
+                30000m,
+                28,
+                21,
+                20,
+                true)
+        };
+    }
 }

@@ -11,6 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 builder.Services.Configure<AzureOpenAIOptions>(builder.Configuration.GetSection("AzureOpenAI"));
+builder.Services.Configure<PoliticasNegocioOptions>(builder.Configuration.GetSection("PoliticasNegocio"));
 builder.Services.AddHttpClient("AzureOpenAI", client =>
 {
 	client.Timeout = TimeSpan.FromSeconds(20);

@@ -44,7 +44,21 @@ dotnet run --project RegistrationAnalisys/RegistrationAnalisys.csproj
 
 No Postman:
 
-- `POST https://localhost:7202/qualificacoes?includeExplanation=true`
+- Importar `RegistrationAnalisys.postman_collection.v2.json`
+- Definir `baseUrl` como `http://localhost:5099`
+- Testar `POST /qualificacoes`
+
+Request minima valida (exemplo):
+
+```json
+{
+	"cnpj": "12.345.678/0001-91",
+	"valorPedido": 12000,
+	"prazoDesejadoDias": 21,
+	"clienteNovo": true,
+	"politicaId": "B2B_BENS_CONSUMO_PADRAO_V1"
+}
+```
 
 ## 4) Opcao B: variaveis de ambiente
 

@@ -1,0 +1,124 @@
+{
+  "info": {
+    "_postman_id": "8d95e912-a4f5-4b2d-bf0b-b7f98d5a31a9",
+    "name": "RegistrationAnalisys - POC B2B v2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection para o novo contrato de qualificacao com politicas B2B e resposta enxuta."
+  },
+  "item": [
+    {
+      "name": "POST 01 - APROVADO - Cliente Novo - Bens Consumo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cnpj\": \"12.345.678/0001-91\",\n  \"valorPedido\": 12000.00,\n  \"prazoDesejadoDias\": 21,\n  \"clienteNovo\": true,\n  \"politicaId\": \"B2B_BENS_CONSUMO_PADRAO_V1\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/qualificacoes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "qualificacoes"
+          ]
+        },
+        "description": "Ultimo digito 1 usa serasa-ok + certidoes-ok e deve retornar APROVADO."
+      },
+      "response": []
+    },
+    {
+      "name": "POST 02 - APROVADO_COM_RESSALVAS - Cliente Novo - Alimentos",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cnpj\": \"12.345.678/0001-92\",\n  \"valorPedido\": 18000.00,\n  \"prazoDesejadoDias\": 28,\n  \"clienteNovo\": true,\n  \"politicaId\": \"B2B_ALIMENTOS_CONSERVADORA_V1\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/qualificacoes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "qualificacoes"
+          ]
+        },
+        "description": "Ultimo digito 2 usa serasa-ressalva + certidoes-ok e deve retornar APROVADO_COM_RESSALVAS."
+      },
+      "response": []
+    },
+    {
+      "name": "POST 03 - REPROVADO - Cliente Existente - Alimentos",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cnpj\": \"12.345.678/0001-93\",\n  \"valorPedido\": 9000.00,\n  \"prazoDesejadoDias\": 14,\n  \"clienteNovo\": false,\n  \"diasAtrasoInterno90d\": 7,\n  \"politicaId\": \"B2B_ALIMENTOS_CONSERVADORA_V1\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/qualificacoes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "qualificacoes"
+          ]
+        },
+        "description": "Ultimo digito 3 usa serasa-reprovado + certidoes-positiva e deve retornar REPROVADO."
+      },
+      "response": []
+    },
+    {
+      "name": "POST 04 - Validacao - Erro Cliente Novo com Atraso",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cnpj\": \"12.345.678/0001-91\",\n  \"valorPedido\": 9000.00,\n  \"prazoDesejadoDias\": 14,\n  \"clienteNovo\": true,\n  \"diasAtrasoInterno90d\": 2,\n  \"politicaId\": \"B2B_BENS_CONSUMO_PADRAO_V1\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/qualificacoes",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "qualificacoes"
+          ]
+        },
+        "description": "Este caso deve retornar 400 por regra de validacao."
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5099"
+    }
+  ]
+}
