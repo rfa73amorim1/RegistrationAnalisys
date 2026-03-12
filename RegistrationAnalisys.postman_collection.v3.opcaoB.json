@@ -72,7 +72,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"cnpj\": \"12.345.678/0001-92\",\n  \"papel\": \"FORNECEDOR\",\n  \"valorOperacao\": 10000.00,\n  \"prazoOprecaoDias\": 21,\n  \"relacionamentoNovo\": true,\n  \"politicaId\": \"FORN_ALIMENTOS_CONSERVADORA_V1\"\n}"
+          "raw": "{\n  \"cnpj\": \"12.345.678/0001-92\",\n  \"papel\": \"FORNECEDOR\",\n  \"valorOperacao\": 10000.00,\n  \"prazoOprecaoDias\": 21,\n  \"relacionamentoNovo\": true,\n  \"politicaId\": \"B2B_BENS_CONSUMO_PADRAO_V1\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/qualificacoes",
