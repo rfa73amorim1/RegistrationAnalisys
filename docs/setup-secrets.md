@@ -53,9 +53,9 @@ Request minima valida (exemplo):
 ```json
 {
 	"cnpj": "12.345.678/0001-91",
-	"valorPedido": 12000,
-	"prazoDesejadoDias": 21,
-	"clienteNovo": true,
+	"valorOperacao": 12000,
+	"prazoOprecaoDias": 21,
+	"relacionamentoNovo": true,
 	"politicaId": "B2B_BENS_CONSUMO_PADRAO_V1"
 }
 ```

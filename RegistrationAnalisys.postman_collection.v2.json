@@ -18,7 +18,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"cnpj\": \"12.345.678/0001-91\",\n  \"valorPedido\": 12000.00,\n  \"prazoDesejadoDias\": 21,\n  \"clienteNovo\": true,\n  \"politicaId\": \"B2B_BENS_CONSUMO_PADRAO_V1\"\n}"
+          "raw": "{\n  \"cnpj\": \"12.345.678/0001-91\",\n  \"valorOperacao\": 12000.00,\n  \"prazoOprecaoDias\": 21,\n  \"relacionamentoNovo\": true,\n  \"politicaId\": \"B2B_BENS_CONSUMO_PADRAO_V1\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/qualificacoes",
@@ -45,7 +45,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"cnpj\": \"12.345.678/0001-92\",\n  \"valorPedido\": 18000.00,\n  \"prazoDesejadoDias\": 28,\n  \"clienteNovo\": true,\n  \"politicaId\": \"B2B_ALIMENTOS_CONSERVADORA_V1\"\n}"
+          "raw": "{\n  \"cnpj\": \"12.345.678/0001-92\",\n  \"valorOperacao\": 18000.00,\n  \"prazoOprecaoDias\": 28,\n  \"relacionamentoNovo\": true,\n  \"politicaId\": \"B2B_ALIMENTOS_CONSERVADORA_V1\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/qualificacoes",
@@ -72,7 +72,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"cnpj\": \"12.345.678/0001-93\",\n  \"valorPedido\": 9000.00,\n  \"prazoDesejadoDias\": 14,\n  \"clienteNovo\": false,\n  \"diasAtrasoInterno90d\": 7,\n  \"politicaId\": \"B2B_ALIMENTOS_CONSERVADORA_V1\"\n}"
+          "raw": "{\n  \"cnpj\": \"12.345.678/0001-93\",\n  \"valorOperacao\": 9000.00,\n  \"prazoOprecaoDias\": 14,\n  \"relacionamentoNovo\": false,\n  \"diasAtrasoInterno90d\": 7,\n  \"politicaId\": \"B2B_ALIMENTOS_CONSERVADORA_V1\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/qualificacoes",
@@ -99,7 +99,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"cnpj\": \"12.345.678/0001-91\",\n  \"valorPedido\": 9000.00,\n  \"prazoDesejadoDias\": 14,\n  \"clienteNovo\": true,\n  \"diasAtrasoInterno90d\": 2,\n  \"politicaId\": \"B2B_BENS_CONSUMO_PADRAO_V1\"\n}"
+          "raw": "{\n  \"cnpj\": \"12.345.678/0001-91\",\n  \"valorOperacao\": 9000.00,\n  \"prazoOprecaoDias\": 14,\n  \"relacionamentoNovo\": true,\n  \"diasAtrasoInterno90d\": 2,\n  \"politicaId\": \"B2B_BENS_CONSUMO_PADRAO_V1\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/qualificacoes",

@@ -36,14 +36,14 @@ public sealed class QualificacoesController : ControllerBase
             return BadRequest(new { message = "CNPJ invalido. Informe 14 digitos." });
         }
 
-        if (request.ValorPedido <= 0)
+        if (request.ValorOperacao <= 0)
         {
-            return BadRequest(new { message = "valorPedido deve ser maior que zero." });
+            return BadRequest(new { message = "valorOperacao deve ser maior que zero." });
         }
 
-        if (request.PrazoDesejadoDias <= 0)
+        if (request.PrazoOprecaoDias <= 0)
         {
-            return BadRequest(new { message = "prazoDesejadoDias deve ser maior que zero." });
+            return BadRequest(new { message = "prazoOprecaoDias deve ser maior que zero." });
         }
 
         if (string.IsNullOrWhiteSpace(request.PoliticaId))
@@ -51,14 +51,26 @@ public sealed class QualificacoesController : ControllerBase
             return BadRequest(new { message = "politicaId e obrigatorio." });
         }
 
-        if (request.ClienteNovo && request.DiasAtrasoInterno90d.HasValue)
+        if (string.IsNullOrWhiteSpace(request.Papel))
         {
-            return BadRequest(new { message = "diasAtrasoInterno90d nao deve ser enviado para cliente novo." });
+            request.Papel = "CLIENTE";
         }
 
-        if (!request.ClienteNovo && !request.DiasAtrasoInterno90d.HasValue)
+        request.Papel = request.Papel.Trim().ToUpperInvariant();
+
+        if (request.Papel is not ("CLIENTE" or "FORNECEDOR"))
         {
-            return BadRequest(new { message = "diasAtrasoInterno90d e obrigatorio para cliente existente." });
+            return BadRequest(new { message = "papel invalido. Informe CLIENTE ou FORNECEDOR." });
+        }
+
+        if (request.RelacionamentoNovo && request.DiasAtrasoInterno90d.HasValue)
+        {
+            return BadRequest(new { message = "diasAtrasoInterno90d nao deve ser enviado para relacionamento novo." });
+        }
+
+        if (!request.RelacionamentoNovo && !request.DiasAtrasoInterno90d.HasValue)
+        {
+            return BadRequest(new { message = "diasAtrasoInterno90d e obrigatorio para relacionamento existente." });
         }
 
         if (request.DiasAtrasoInterno90d is < 0)
@@ -68,7 +80,14 @@ public sealed class QualificacoesController : ControllerBase
 
         request.Cnpj = cnpjNormalizado;
 
-        var result = await _qualificacaoService.QualificarAsync(request, cancellationToken);
-        return Ok(result);
+        try
+        {
+            var result = await _qualificacaoService.QualificarAsync(request, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }

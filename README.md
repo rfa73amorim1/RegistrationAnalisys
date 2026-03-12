@@ -6,12 +6,15 @@ Importante: este projeto usa dados simulados (mocks) para PoC. Nao ha consulta r
 
 ## Resumo do produto (PoC)
 
-1. Recebe dados do pedido + contexto do cliente.
+1. Recebe dados da operacao + contexto do relacionamento.
 2. Aplica uma politica de negocio (segmentada por `politicaId`).
-3. Retorna resposta enxuta para o comercial:
-   - `recomendacaoAgente`
-   - `acaoComercial`
-   - `motivosPrincipais`
+3. Retorna nucleo comum de decisao:
+  - `decisao`
+  - `recomendacaoAgente`
+  - `motivosPrincipais`
+4. Retorna bloco especifico por papel:
+  - CLIENTE: `acaoComercial`
+  - FORNECEDOR: `acaoOnboardingFornecedor`
 
 ## Como rodar
 
@@ -37,9 +40,10 @@ Swagger foi desabilitado para uso direto com Postman.
 ```json
 {
   "cnpj": "12.345.678/0001-91",
-  "valorPedido": 12000.00,
-  "prazoDesejadoDias": 21,
-  "clienteNovo": true,
+  "papel": "CLIENTE",
+  "valorOperacao": 12000.00,
+  "prazoOprecaoDias": 21,
+  "relacionamentoNovo": true,
   "politicaId": "B2B_BENS_CONSUMO_PADRAO_V1"
 }
 ```
@@ -47,16 +51,18 @@ Swagger foi desabilitado para uso direto com Postman.
 Campos:
 
 1. `cnpj` (obrigatorio)
-2. `valorPedido` (obrigatorio, > 0)
-3. `prazoDesejadoDias` (obrigatorio, > 0)
-4. `clienteNovo` (obrigatorio)
-5. `diasAtrasoInterno90d` (obrigatorio apenas se `clienteNovo = false`)
-6. `politicaId` (obrigatorio)
+2. `papel` (opcional: `CLIENTE` ou `FORNECEDOR`; default = `CLIENTE` para retrocompatibilidade)
+3. `valorOperacao` (obrigatorio, > 0)
+4. `prazoOprecaoDias` (obrigatorio, > 0)
+5. `relacionamentoNovo` (obrigatorio)
+6. `diasAtrasoInterno90d` (obrigatorio apenas se `relacionamentoNovo = false`)
+7. `politicaId` (obrigatorio)
 
-### Response
+### Response - CLIENTE
 
 ```json
 {
+  "decisao": "APROVADO_COM_RESSALVAS",
   "recomendacaoAgente": "Recomenda-se aprovar com ressalvas, adotando limite e prazo mais conservadores para esta venda.",
   "acaoComercial": {
     "decisao": "APROVADO_COM_RESSALVAS",
@@ -65,11 +71,38 @@ Campos:
     "entradaMinimaPercentual": 25,
     "vendaSomenteAVista": false
   },
+  "acaoOnboardingFornecedor": null,
   "motivosPrincipais": [
     "Score Serasa em faixa B (640)."
   ]
 }
 ```
+
+### Response - FORNECEDOR
+
+```json
+{
+  "decisao": "APROVADO_COM_RESSALVAS",
+  "recomendacaoAgente": "Recomenda-se habilitar o fornecedor com ressalvas e acompanhamento de pendencias de compliance.",
+  "acaoOnboardingFornecedor": {
+    "habilitarCadastro": true,
+    "acaoRecomendada": "Habilitar fornecedor com ressalvas e revisao de pendencias.",
+    "pendencias": [
+      "CND estadual em status POSITIVA (com restricao)."
+    ],
+    "nivelRisco": "MEDIO"
+  },
+  "acaoComercial": null,
+  "motivosPrincipais": [
+    "Score Serasa em faixa B (640)."
+  ]
+}
+```
+
+Observacao de contrato:
+
+1. O bloco nao aplicavel por papel e retornado como `null`.
+2. Nao ha campo misto (string/objeto) nesses blocos.
 
 ## Politicas de negocio (PoC)
 
@@ -83,17 +116,88 @@ Politicas atuais:
 
 1. `B2B_ALIMENTOS_CONSERVADORA_V1`
 2. `B2B_BENS_CONSUMO_PADRAO_V1`
+3. `FORN_ALIMENTOS_CONSERVADORA_V1`
 
-Cada politica define:
+Cada item agora define obrigatoriamente `TipoPapel`:
 
-1. `ScoreMinAprovar`
-2. `ScoreMinRessalva`
-3. `MaxDiasAtrasoInterno`
-4. `LimiteBase`
-5. `PrazoMaximoAprovadoDias`
-6. `PrazoMaximoRessalvaDias`
-7. `EntradaMinimaRessalvaPercentual`
-8. `BloqueiaComRestricaoAtiva`
+1. `CLIENTE`
+2. `FORNECEDOR`
+
+### Exemplo de politica CLIENTE
+
+```json
+{
+  "Id": "B2B_ALIMENTOS_CONSERVADORA_V1",
+  "TipoPapel": "CLIENTE",
+  "ScoreMinAprovar": 780,
+  "ScoreMinRessalva": 620,
+  "MaxDiasAtrasoInterno": 5,
+  "LimiteBase": 20000,
+  "PrazoMaximoAprovadoDias": 21,
+  "PrazoMaximoRessalvaDias": 14,
+  "EntradaMinimaRessalvaPercentual": 25,
+  "BloqueiaComRestricaoAtiva": true
+}
+```
+
+### Exemplo de politica FORNECEDOR (sem campos comerciais)
+
+```json
+{
+  "Id": "FORN_ALIMENTOS_CONSERVADORA_V1",
+  "TipoPapel": "FORNECEDOR",
+  "ScoreMinAprovar": 780,
+  "ScoreMinRessalva": 620,
+  "MaxDiasAtrasoInterno": 5,
+  "BloqueiaComRestricaoAtiva": true
+}
+```
+
+Validacao condicional:
+
+1. Se `TipoPapel = CLIENTE`, campos comerciais sao obrigatorios.
+2. Se `TipoPapel = FORNECEDOR`, campos comerciais nao devem ser enviados.
+
+### Compatibilidade entre request e politica
+
+1. O endpoint valida se `papel` da request e compativel com o `TipoPapel` da politica.
+2. Em incompatibilidade, retorna 400 com mensagem clara.
+
+Exemplo:
+
+```text
+Politica informada e do tipo CLIENTE, mas papel solicitado e FORNECEDOR.
+```
+
+## Requests de exemplo por papel
+
+### CLIENTE
+
+```json
+{
+  "cnpj": "12.345.678/0001-91",
+  "papel": "CLIENTE",
+  "valorOperacao": 12000.00,
+  "prazoOprecaoDias": 21,
+  "relacionamentoNovo": true,
+  "politicaId": "B2B_BENS_CONSUMO_PADRAO_V1"
+}
+```
+
+### FORNECEDOR
+
+```json
+{
+  "cnpj": "12.345.678/0001-92",
+  "papel": "FORNECEDOR",
+  "valorOperacao": 12000.00,
+  "prazoOprecaoDias": 21,
+  "relacionamentoNovo": true,
+  "politicaId": "FORN_ALIMENTOS_CONSERVADORA_V1"
+}
+```
+
+Observacao: para manter retrocompatibilidade, requests antigas sem `papel` continuam funcionando como `CLIENTE`.
 
 ## Cenarios de mock
 
@@ -105,16 +209,20 @@ Para facilitar testes, o ultimo digito do CNPJ define os dados mockados:
 
 ## Collection Postman
 
-Use a collection nova:
+Para testes de fluxo antigo (sem papel), use:
 
 - `RegistrationAnalisys.postman_collection.v2.json`
 
-Ela ja inclui cenarios:
+Para testes da Opcao B (CLIENTE/FORNECEDOR), use:
+
+- `RegistrationAnalisys.postman_collection.v3.opcaoB.json`
+
+A v3 inclui cenarios:
 
 1. APROVADO
 2. APROVADO_COM_RESSALVAS
-3. REPROVADO
-4. Erro de validacao (400)
+3. FORNECEDOR
+4. Erro de validacao de compatibilidade (400)
 
 Variavel da collection:
 
@@ -127,6 +235,8 @@ Variavel da collection:
 3. Se `score >= ScoreMinAprovar` => `APROVADO`
 4. Se `score >= ScoreMinRessalva` => `APROVADO_COM_RESSALVAS`
 5. Caso contrario => `REPROVADO`
+
+Importante: a IA apenas explica/fundamenta a decisao. As regras deterministicas continuam decidindo o resultado.
 
 ## Explicacao com Azure OpenAI (opcional)
 

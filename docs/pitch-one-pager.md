@@ -8,12 +8,11 @@ Times comerciais B2B precisam decidir rapido se podem vender a prazo para um CNP
 
 RegistrationAnalisys transforma dados de risco em decisao comercial objetiva para operacao B2B:
 
-1. Recebe CNPJ + dados do pedido + contexto do cliente.
-2. Aplica politica de negocio do cliente comprador (por `politicaId`).
+1. Recebe CNPJ + dados da operacao + contexto do relacionamento.
+2. Aplica politica de negocio compativel com o papel (por `politicaId`).
 3. Retorna resposta enxuta para acao imediata:
-   - `recomendacaoAgente`
-   - `acaoComercial`
-   - `motivosPrincipais`
+   - nucleo comum: `decisao`, `recomendacaoAgente`, `motivosPrincipais`
+   - bloco por papel: `acaoComercial` (CLIENTE) ou `acaoOnboardingFornecedor` (FORNECEDOR)
 
 ## Diferencial
 
@@ -26,22 +25,31 @@ Mesmo CNPJ pode gerar decisoes diferentes conforme a politica aplicada (ex.: ali
 Entrada (request unica):
 
 - `cnpj`
-- `valorPedido`
-- `prazoDesejadoDias`
-- `clienteNovo`
+- `papel` (opcional: CLIENTE/FORNECEDOR; default CLIENTE)
+- `valorOperacao`
+- `prazoOprecaoDias`
+- `relacionamentoNovo`
 - `diasAtrasoInterno90d` (obrigatorio para cliente existente)
 - `politicaId`
 
 Saida (response enxuta):
 
+- `decisao`
 - `recomendacaoAgente`
-- `acaoComercial`:
+- `acaoComercial` (CLIENTE):
   - `decisao`
   - `limiteCreditoSugerido`
   - `prazoMaximoDias`
   - `entradaMinimaPercentual`
   - `vendaSomenteAVista`
+- `acaoOnboardingFornecedor` (FORNECEDOR):
+   - `habilitarCadastro`
+   - `acaoRecomendada`
+   - `pendencias`
+   - `nivelRisco`
 - `motivosPrincipais`
+
+Observacao: o bloco nao aplicavel por papel e retornado como `null`.
 
 ## Como a decisao e feita
 

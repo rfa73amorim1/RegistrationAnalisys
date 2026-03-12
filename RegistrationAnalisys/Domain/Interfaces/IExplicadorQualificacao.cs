@@ -7,6 +7,7 @@ public interface IExplicadorQualificacao
 {
     Task<ExplicacaoQualificacao> GerarExplicacaoAsync(
         DecisaoFinal decisaoFinal,
+        TipoPapel tipoPapel,
         decimal scoreFinanceiro,
         IReadOnlyCollection<string> evidencias,
         IReadOnlyCollection<string> pendencias,

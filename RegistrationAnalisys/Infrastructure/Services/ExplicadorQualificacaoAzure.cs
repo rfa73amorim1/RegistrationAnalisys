@@ -35,6 +35,7 @@ public sealed class ExplicadorQualificacaoAzure : IExplicadorQualificacao
 
     public async Task<ExplicacaoQualificacao> GerarExplicacaoAsync(
         DecisaoFinal decisaoFinal,
+        TipoPapel tipoPapel,
         decimal scoreFinanceiro,
         IReadOnlyCollection<string> evidencias,
         IReadOnlyCollection<string> pendencias,
@@ -43,7 +44,13 @@ public sealed class ExplicadorQualificacaoAzure : IExplicadorQualificacao
         var config = _options.Value;
         if (!config.Enabled || string.IsNullOrWhiteSpace(config.Endpoint) || string.IsNullOrWhiteSpace(config.ApiKey) || string.IsNullOrWhiteSpace(config.DeploymentName))
         {
-            return await _fallback.GerarExplicacaoAsync(decisaoFinal, scoreFinanceiro, evidencias, pendencias, cancellationToken);
+            _logger.LogInformation(
+                "[AI_SOURCE]=FALLBACK Explicacao usando FALLBACK (Azure desabilitado/incompleto). Enabled={Enabled}, EndpointOk={EndpointOk}, ApiKeyOk={ApiKeyOk}, DeploymentOk={DeploymentOk}.",
+                config.Enabled,
+                !string.IsNullOrWhiteSpace(config.Endpoint),
+                !string.IsNullOrWhiteSpace(config.ApiKey),
+                !string.IsNullOrWhiteSpace(config.DeploymentName));
+            return await _fallback.GerarExplicacaoAsync(decisaoFinal, tipoPapel, scoreFinanceiro, evidencias, pendencias, cancellationToken);
         }
 
         try
@@ -59,12 +66,12 @@ public sealed class ExplicadorQualificacaoAzure : IExplicadorQualificacao
                     new
                     {
                         role = "system",
-                        content = "Voce gera recomendacoes comerciais de credito B2B em portugues do Brasil. O foco e orientar o time de vendas sobre aprovar, aprovar com ressalvas ou reprovar a prazo. Nao oriente o consultado a melhorar score. Responda exclusivamente em JSON valido com as chaves: resumo, fundamentos (array), recomendacoes (array). Nao invente fatos fora das evidencias e pendencias recebidas."
+                        content = BuildSystemPrompt(tipoPapel)
                     },
                     new
                     {
                         role = "user",
-                        content = BuildUserPrompt(decisaoFinal, scoreFinanceiro, evidencias, pendencias)
+                        content = BuildUserPrompt(decisaoFinal, tipoPapel, scoreFinanceiro, evidencias, pendencias)
                     }
                 },
                 temperature = config.Temperature,
@@ -82,7 +89,7 @@ public sealed class ExplicadorQualificacaoAzure : IExplicadorQualificacao
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Azure OpenAI retornou status {StatusCode}. Fallback para template.", response.StatusCode);
-                return await _fallback.GerarExplicacaoAsync(decisaoFinal, scoreFinanceiro, evidencias, pendencias, cancellationToken);
+                return await _fallback.GerarExplicacaoAsync(decisaoFinal, tipoPapel, scoreFinanceiro, evidencias, pendencias, cancellationToken);
             }
 
             var completion = JsonSerializer.Deserialize<AzureChatCompletionResponse>(responseBody, JsonOptions);
@@ -91,27 +98,46 @@ public sealed class ExplicadorQualificacaoAzure : IExplicadorQualificacao
             if (string.IsNullOrWhiteSpace(content))
             {
                 _logger.LogWarning("Resposta do Azure OpenAI sem conteudo. Fallback para template.");
-                return await _fallback.GerarExplicacaoAsync(decisaoFinal, scoreFinanceiro, evidencias, pendencias, cancellationToken);
+                return await _fallback.GerarExplicacaoAsync(decisaoFinal, tipoPapel, scoreFinanceiro, evidencias, pendencias, cancellationToken);
             }
 
             var explicacao = TryParseExplicacao(content);
             if (explicacao is not null)
             {
+                explicacao.Origem = "AGENTE_AZURE";
+                _logger.LogInformation(
+                    "[AI_SOURCE]=AZURE Explicacao gerada via AZURE OPENAI. Deployment={Deployment}, Papel={TipoPapel}, Decisao={DecisaoFinal}, Fundamentos={FundamentosCount}, Recomendacoes={RecomendacoesCount}.",
+                    config.DeploymentName,
+                    tipoPapel,
+                    decisaoFinal,
+                    explicacao.Fundamentos.Count,
+                    explicacao.Recomendacoes.Count);
                 return explicacao;
             }
 
             _logger.LogWarning("Nao foi possivel interpretar JSON do Azure OpenAI. Fallback para template.");
-            return await _fallback.GerarExplicacaoAsync(decisaoFinal, scoreFinanceiro, evidencias, pendencias, cancellationToken);
+            return await _fallback.GerarExplicacaoAsync(decisaoFinal, tipoPapel, scoreFinanceiro, evidencias, pendencias, cancellationToken);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Falha ao consultar Azure OpenAI. Fallback para template.");
-            return await _fallback.GerarExplicacaoAsync(decisaoFinal, scoreFinanceiro, evidencias, pendencias, cancellationToken);
+            return await _fallback.GerarExplicacaoAsync(decisaoFinal, tipoPapel, scoreFinanceiro, evidencias, pendencias, cancellationToken);
         }
+    }
+
+    private static string BuildSystemPrompt(TipoPapel tipoPapel)
+    {
+        if (tipoPapel == TipoPapel.FORNECEDOR)
+        {
+            return "Voce gera recomendacoes de onboarding de fornecedores B2B em portugues do Brasil. O foco e orientar habilitacao, bloqueio, pendencias e compliance. Nao mencione venda a vista, entrada minima ou limite de credito. Responda exclusivamente em JSON valido com as chaves: resumo, fundamentos (array), recomendacoes (array). Nao invente fatos fora das evidencias e pendencias recebidas.";
+        }
+
+        return "Voce gera recomendacoes comerciais de credito B2B em portugues do Brasil. O foco e orientar o time de vendas sobre aprovar, aprovar com ressalvas ou reprovar a prazo. Responda exclusivamente em JSON valido com as chaves: resumo, fundamentos (array), recomendacoes (array). Nao invente fatos fora das evidencias e pendencias recebidas.";
     }
 
     private static string BuildUserPrompt(
         DecisaoFinal decisaoFinal,
+        TipoPapel tipoPapel,
         decimal scoreFinanceiro,
         IReadOnlyCollection<string> evidencias,
         IReadOnlyCollection<string> pendencias)
@@ -119,9 +145,13 @@ public sealed class ExplicadorQualificacaoAzure : IExplicadorQualificacao
         var sb = new StringBuilder();
         sb.AppendLine("Dados da qualificacao:");
         sb.AppendLine($"- decisaoFinal: {decisaoFinal}");
+        sb.AppendLine($"- tipoPapel: {tipoPapel}");
         sb.AppendLine($"- scoreFinanceiro: {scoreFinanceiro:0}");
         sb.AppendLine($"- evidencias: {string.Join(" | ", evidencias)}");
         sb.AppendLine($"- pendencias: {string.Join(" | ", pendencias)}");
+        sb.AppendLine($"- possuiPendencias: {(pendencias.Count > 0 ? "sim" : "nao")}");
+        sb.AppendLine();
+        sb.AppendLine("Regra obrigatoria: se pendencias estiver vazio, nao mencionar pendencias, restricoes a regularizar ou pendencias a resolver.");
         sb.AppendLine();
         sb.AppendLine("Gere JSON com:");
         sb.AppendLine("{");
